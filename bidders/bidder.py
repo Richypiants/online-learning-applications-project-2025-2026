@@ -8,7 +8,7 @@ class Bidder:
         self.T = T  # number of rounds (= number of auctions = number of users)
         self.RHO = B / T  # budget per round
 
-        self.valuations = valuations
+        self.valuations = np.array(valuations)
         self.N_CAMPAIGNS = len(self.valuations)
 
         self.environment = environment

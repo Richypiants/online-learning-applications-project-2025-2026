@@ -42,7 +42,7 @@ class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
 
     def _choose_actions(self, f_ucbs, c_lcbs):
         campaigns_to_explore, arms_to_explore = self.change_detector.require_estimation()
-        if campaigns_to_explore.size > 0:
+        if len(campaigns_to_explore) > 0:
             self._estimation_action(campaigns_to_explore, arms_to_explore)
 
         # otherwise: standard action with prob 1-alpha, or extra exploration with prob alpha
@@ -88,7 +88,7 @@ class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
     def learn(self, f_t, c_t, m_t=None):
         super().learn(f_t, c_t)
         self.N_pulls_total[np.arange(self.N_CAMPAIGNS), self.a_t] += 1
-        self._handle_change(self.change_detector.detect())
+        self._handle_change(self.change_detector.detect(f_t, self.a_t))
 
     def _handle_change(self, changed_arms):
         self.N_pulls[np.arange(self.N_CAMPAIGNS), self.a_t] *= ~changed_arms

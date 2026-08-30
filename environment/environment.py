@@ -26,7 +26,7 @@ class Environment:
             f"Bids space: {self.BIDS_SPACE}\n"
             f"Number of campaigns: {self.N_CAMPAIGNS}\n"
             f"Campaigns:\n{campaigns}\n"
-            f"Conflicts graph (1 = conflicting):\n{self.conflicts_graph}"
+            f"Conflicts graph matrix (1 = conflicting):\n{self.conflicts_graph}"
         )
 
     __repr__ = __str__
@@ -102,10 +102,15 @@ class Environment:
         for campaign_index in campaign_indices:
             # TODO: problems: 
             # 2) the gamma_values contain the bid 0.0, which still must be removed somehow!
-            # 3) I REALLY think that the LP should use the updated RHO value, otherwise this wouldn't be realistic -> actually no, because the LP constraint is enforcing 
-            # an expected expense per-round, which is the same regardless of the phase -> we should spend B/T at each round regardless of the phase, in a sense!
-            # -> This becomes important if the clairvoyant could decide to bid only in one of the phases (like the suboptimality proof for "pacing" in adversarial 
-            # auctions, the one that splits the rounds in half and proves that a bidder cannot decide to wait out for a better phase)
+            # 3) I REALLY think that the LP should use the updated RHO value at each phase, otherwise this wouldn't be realistic -> actually no, because the LP 
+            # constraint is enforcing an expected expense per-round, which is the same regardless of the phase -> we should be spending B/T at each round regardless 
+            # of the phase, in a sense!
+            # -> This question becomes important if the clairvoyant could decide to bid only in one of the phases (like the suboptimality proof for "pacing" in 
+            # adversarial auctions, the one that splits the rounds in half and proves that a bidder cannot decide to wait out for a better phase), since in that case 
+            # we don't want to bid RHO at each round, because RHO is different among the phases! But assuming to know the different phases in advance is unreasonable.
+            # The problem that is truly important is: if we bid on multiple campaigns together, do we still satisfy the budget constraint in expectation since in 
+            # theory we are bidding N*RHO at each round? -> likely not! the bidder is forced to not bid on anything with some probability if we still use RHO!
+            # -> what if we use RHO/N in the combinatorial LP instead?
             gamma_values, f_bars, c_bars = self.campaigns[campaign_index].single_campaign_clairvoyant(bidder.bids[1:], bidder.valuations[campaign_index], bidder.RHO)
             phase_change_times = np.concatenate([np.array([0]), self.campaigns[campaign_index].phase_change_times])
 
@@ -115,7 +120,11 @@ class Environment:
             campaign_c_bars.append(c_bars)
 
         joined_phase_change_times = np.unique(np.concatenate(campaign_phase_change_times))
-        joined_indices = [np.searchsorted(phase_times, joined_phase_change_times, side="left") for phase_times in campaign_phase_change_times]
+        joined_indices = [np.searchsorted(phase_times, joined_phase_change_times, side="right") - 1 for phase_times in campaign_phase_change_times]
+        print("campaign_phase_change_times:", campaign_phase_change_times)
+        print("joined_phase_change_times:", joined_phase_change_times)
+        print("joined_indices:", joined_indices)
+        print("campaign_gamma_values:", campaign_gamma_values)
         
         phase_wise_campaign_gamma_values = np.array([gamma_values[idx] for gamma_values, idx in zip(campaign_gamma_values, joined_indices)])         # shape: (N_CAMPAIGNS, len(joined_phase_change_times), len(bidder.bids))
         phase_wise_campaign_f_bars = np.array([f_bars[idx] for f_bars, idx in zip(campaign_f_bars, joined_indices)])     # shape: (N_CAMPAIGNS, len(joined_phase_change_times))
@@ -172,10 +181,14 @@ class Environment:
             phase_wise_objective_values.append(model.objective_value)
 
         phase_wise_superarm_gamma_values = np.array(phase_wise_superarm_gamma_values)       # shape: (len(joined_phase_change_times), 2**len(campaign_indices))
-        phase_wise_expected_payments = np.array(phase_wise_expected_payments)               # shape: (len(joined_phase_change_times),)
         phase_wise_objective_values = np.array(phase_wise_objective_values)                 # shape: (len(joined_phase_change_times),)
+        phase_wise_expected_payments = np.array(phase_wise_expected_payments)               # shape: (len(joined_phase_change_times),)
 
-        # TODO: return the phase_change_times too... or expand the arrays to the n_users size by repeating the values according to the phase_change_times
+        repeat_counts = np.diff(np.concatenate((joined_phase_change_times, [bidder.T])))
+        phase_wise_objective_values = np.repeat(phase_wise_objective_values, repeat_counts) 
+        phase_wise_expected_payments = np.repeat(phase_wise_expected_payments, repeat_counts) 
+
+        # TODO: currently repeating the values according to the joined_phase_change_times, an alternative is to return the change times so that they can also be visualized
         return phase_wise_campaign_gamma_values, phase_wise_superarm_gamma_values, phase_wise_objective_values, phase_wise_expected_payments
 
     def compute_clairvoyant_strategy_combinatorial_complex(self, bidder, campaign_indices=None):
@@ -316,7 +329,7 @@ class Environment:
     def simulate_environment(self, bidder, n_users, seed=17):
         np.random.seed(seed)  # set a random seed for reproducibility
 
-        other_bids = [campaign.generate_random_competing_bids(n_users, seed=seed) for campaign in self.campaigns]  # generate random bids for the other advertisers  shape: (N_CAMPAIGNS, n_users, N_COMPETITORS)
+        other_bids = [campaign.generate_random_competing_bids(n_users, seed=seed+i*217) for i, campaign in enumerate(self.campaigns)]  # generate random bids for the other advertisers  shape: (N_CAMPAIGNS, n_users, N_COMPETITORS)
         m_t = np.array([campaign.get_max_competing_bids() for campaign in self.campaigns])  # max of the competitors' bids at each round -> shape: (N_CAMPAIGNS, n_users)
 
         utilities = []

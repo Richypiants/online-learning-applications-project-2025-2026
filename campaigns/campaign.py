@@ -16,8 +16,10 @@ class Campaign(FirstPriceAuction):
         self.phase_change_times = np.array([])
 
     # TODO: add seed to seed everything, including the random generation of competing bids, so that we can have reproducible experiments
+    # maybe seed here so that it is not forgotten and repeated?
     def generate_random_competing_bids(self, n_users, seed):
-        raise NotImplementedError()
+        np.random.seed(seed)
+        #raise NotImplementedError()
 
     def get_max_competing_bids(self):
         if self.competing_bids is None:

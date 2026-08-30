@@ -9,7 +9,7 @@ class SlidingWindowCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
         super().__init__(B, T, valuations, environment)
 
         # TODO: check the default window size choice: tau = O(sqrt(T log T)), since it should be divided by the # changes or by T if unknown
-        self.window_size = int(window_size if window_size is not None else min(T, np.ceil(2 * np.sqrt(T * np.log(T)))))      # theoretical choice: tau = O(sqrt(T log T))
+        self.window_size = int(window_size if window_size is not None else min(T, np.ceil(2 * np.sqrt(np.log(T)))))      # theoretical choice: tau = O(sqrt(T log T))
         # sliding-window caches: one entry per round, per-campaign utility/cost vectors with NaN on unplayed arms (like the SW-UCB cache)
         self.f_cache = np.full((self.window_size, self.N_CAMPAIGNS, self.K), np.nan)
         self.c_cache = np.full((self.window_size, self.N_CAMPAIGNS, self.K), np.nan)

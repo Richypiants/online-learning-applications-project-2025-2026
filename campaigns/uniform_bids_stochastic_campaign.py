@@ -10,7 +10,7 @@ class UniformBidsStochasticCampaign(Campaign):
         self.DESCRIPTION = "Competing bids sampled from a stochastic uniform distribution, maximum bid follows a Beta distribution."
 
     def generate_random_competing_bids(self, n_users, seed):
-        np.random.seed(seed)
+        super().generate_random_competing_bids(n_users, seed)
         self.competing_bids = np.random.uniform(low=0.0, high=1.0, size=(n_users, self.N_COMPETITORS))
         return self.competing_bids      # am I sure that I need to return these?
 

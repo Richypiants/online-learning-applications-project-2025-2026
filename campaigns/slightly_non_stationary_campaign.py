@@ -9,14 +9,14 @@ class SlightlyNonStationaryCampaign(Campaign):
         self.TYPE = "Slightly Non-Stationary"
         self.DESCRIPTION = "Competing bids sampled from a slightly non-stationary distribution, which is partitioned in stationary phases."
 
-    def generate_random_competing_bids(self, t, n_users, n_phases, seed):
-        np.random.seed(seed)
+        self.n_phases = np.random.choice(np.arange(2, 6), size=1)[0]      # number of stationary phases in the non-stationary distribution of competing bids
 
-        self.n_phases = n_phases
+    def generate_random_competing_bids(self, n_users, seed):
+        super().generate_random_competing_bids(n_users, seed)
 
-        self.phase_change_times = np.random.choice(n_users, n_phases - 1, replace=False)
+        self.phase_change_times = np.random.choice(n_users, self.n_phases - 1, replace=False)
         self.phase_change_times.sort()
-        self.phase_upper_bounds = np.random.uniform(low=0.0, high=1.0, size=n_phases)
+        self.phase_upper_bounds = np.random.uniform(low=0.0, high=1.0, size=self.n_phases)
 
         # TODO: change this to a more realistic non-stationary distribution, e.g., a mixture of Gaussians with changing means and variances over time, or a sinusoidal function with noise, or a random walk with drift, etc.
         self.competing_bids = np.zeros((n_users, self.N_COMPETITORS))
@@ -44,10 +44,9 @@ class SlightlyNonStationaryCampaign(Campaign):
             for upper_bound in self.phase_upper_bounds
         ])      # shape: (n_phases, len(bids_space))
         return win_probs_per_phase
+    
 
-    # TODO: uncomment this, but self.n_phases is not defined until the bids are not generated!
-    # Maybe should fix the number of phases instead of generating it randomly?
-    # def __str__(self):
-    #     return "".join(super().__str__(), f"\nNumber of phases: {self.n_phases}")
+    def __str__(self):
+        return "".join([super().__str__(), f"\nNumber of phases: {self.n_phases}"])
 
-    # __repr__ = __str__
+    __repr__ = __str__

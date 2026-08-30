@@ -10,12 +10,12 @@ class HighlyNonStationaryCampaign(Campaign):
         self.DESCRIPTION = "Competing bids sampled from a highly non-stationary distribution which changes quickly over time."
 
     def generate_random_competing_bids(self, n_users, seed):
-        np.random.seed(seed)
+        super().generate_random_competing_bids(n_users, seed)
         
         # TODO: the following arbitrary pattern/distribution is from the notebook, probably change it
         # non-trivial scenario: competitors sample bids from a uniform with range varying over time
         pattern = lambda t: 1 - np.abs(np.sin(5 * t / n_users))
-        self.competing_bids = np.array([np.random.uniform(0, pattern(t), size = self.N_COMPETITORS) for t in range(n_users)]).T
+        self.competing_bids = np.array([np.random.uniform(0, pattern(t), size = self.N_COMPETITORS) for t in range(n_users)])
         return self.competing_bids
 
     def get_win_probabilities(self, bids_space):

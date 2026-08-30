@@ -18,10 +18,7 @@ class CUSUMChangeDetector:
         arms_to_explore_per_campaign = np.argsort(self.exploration_counters, axis=1)[:, -1]
         maximum_required_exploration_per_arm = self.exploration_counters[np.arange(self.N_CAMPAIGNS), arms_to_explore_per_campaign]
         campaign_priorities = np.argsort(maximum_required_exploration_per_arm)[::-1]
-        campaign_priorities = [
-            campaign if maximum_required_exploration_per_arm[campaign] > 0 else None
-            for campaign in campaign_priorities
-        ]
+        campaign_priorities = [campaign for campaign in campaign_priorities if maximum_required_exploration_per_arm[campaign] > 0]      # TODO: check if this is correct
 
         return campaign_priorities, arms_to_explore_per_campaign
     
@@ -41,8 +38,8 @@ class CUSUMChangeDetector:
                                                                         )
 
         # then, check for changes and eventually reset
-        self.g_plus[np.arange(self.N_CAMPAIGNS), played_arms] = np.max(0, self.g_plus[np.arange(self.N_CAMPAIGNS), played_arms] + s_plus)
-        self.g_minus[np.arange(self.N_CAMPAIGNS), played_arms] = np.max(0, self.g_minus[np.arange(self.N_CAMPAIGNS), played_arms] + s_minus)
+        self.g_plus[np.arange(self.N_CAMPAIGNS), played_arms] = np.clip(self.g_plus[np.arange(self.N_CAMPAIGNS), played_arms] + s_plus, 0, None)
+        self.g_minus[np.arange(self.N_CAMPAIGNS), played_arms] = np.clip(self.g_minus[np.arange(self.N_CAMPAIGNS), played_arms] + s_minus, 0, None)
 
         positive_changes = self.g_plus[np.arange(self.N_CAMPAIGNS), played_arms] > self.h
         negative_changes = self.g_minus[np.arange(self.N_CAMPAIGNS), played_arms] > self.h
