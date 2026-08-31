@@ -101,7 +101,7 @@ class Environment:
         
         for campaign_index in campaign_indices:
             # TODO: problems: 
-            # 2) the gamma_values contain the bid 0.0, which still must be removed somehow!
+            # 2) the gamma_values contain the bid 0.0, which still must be removed somehow! -> do they though, since we pass bidder.bids[1:] to the single_campaign_clairvoyant function?
             # 3) I REALLY think that the LP should use the updated RHO value at each phase, otherwise this wouldn't be realistic -> actually no, because the LP 
             # constraint is enforcing an expected expense per-round, which is the same regardless of the phase -> we should be spending B/T at each round regardless 
             # of the phase, in a sense!
@@ -130,10 +130,10 @@ class Environment:
         phase_wise_campaign_f_bars = np.array([f_bars[idx] for f_bars, idx in zip(campaign_f_bars, joined_indices)])     # shape: (N_CAMPAIGNS, len(joined_phase_change_times))
         phase_wise_campaign_c_bars = np.array([c_bars[idx] for c_bars, idx in zip(campaign_c_bars, joined_indices)])     # shape: (N_CAMPAIGNS, len(joined_phase_change_times))
 
-        phase_wise_superarm_f_bars = np.zeros((2**self.N_CAMPAIGNS, len(joined_phase_change_times)))
-        phase_wise_superarm_c_bars = np.zeros((2**self.N_CAMPAIGNS, len(joined_phase_change_times)))
-        for a in range(2**self.N_CAMPAIGNS):
-            for i in range(self.N_CAMPAIGNS):
+        phase_wise_superarm_f_bars = np.zeros((2**len(campaign_indices), len(joined_phase_change_times)))
+        phase_wise_superarm_c_bars = np.zeros((2**len(campaign_indices), len(joined_phase_change_times)))
+        for a in range(2**len(campaign_indices)):
+            for i in range(len(campaign_indices)):
                 if a & (1 << i):  # if campaign i is included in the campaigns subset a:
                     phase_wise_superarm_f_bars[a] += phase_wise_campaign_f_bars[i]          # NOTE: check: should be summing shape (len(joined_phase_change_times),) with shape (len(joined_phase_change_times),) -> should be fine
                     phase_wise_superarm_c_bars[a] += phase_wise_campaign_c_bars[i]

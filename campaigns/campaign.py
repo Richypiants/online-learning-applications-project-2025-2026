@@ -13,7 +13,7 @@ class Campaign(FirstPriceAuction):
         self.TYPE = "UNDEFINED"
         self.DESCRIPTION = "UNDEFINED"
         self.competing_bids = None
-        self.phase_change_times = np.array([])
+        self.phase_change_times = np.array([], dtype=np.int64)
 
     # TODO: add seed to seed everything, including the random generation of competing bids, so that we can have reproducible experiments
     # maybe seed here so that it is not forgotten and repeated?
