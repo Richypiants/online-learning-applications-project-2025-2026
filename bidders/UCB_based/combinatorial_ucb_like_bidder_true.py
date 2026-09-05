@@ -4,23 +4,41 @@ import mip
 from bidders.UCB_based.base_ucb_like_bidder import BaseUCBLikeBidder
 
 class CombinatorialUCBLikeBidder(BaseUCBLikeBidder):
+    def _exploration_actions(self):
+        actions = np.zeros(self.N_CAMPAIGNS, dtype=int)
+
+        feasible_superarms = [i for i in range(2**self.N_CAMPAIGNS)]
+        for conflict in self.environment.conflicts_graph.graph:
+            campaign_a, campaign_b = conflict
+            for a in feasible_superarms:
+                if a & (1 << campaign_a) and a & (1 << campaign_b):  # if both campaigns are included in the campaigns subset a:
+                    feasible_superarms.remove(a)
+
+        superarm = np.random.choice(feasible_superarms)
+
+        for campaign in range(self.N_CAMPAIGNS):
+            if superarm & (1 << campaign):  # if campaign campaign is included in the sampled campaigns subset:
+                # sample uniformly over the feasible non-zero arms for campaign `campaign` (offset by +1 since arm 0 is the 0.0 bid)
+                feasible_nonzero = np.flatnonzero(self.feasible_nonzero[campaign])
+                actions[campaign] = 1 + np.random.choice(feasible_nonzero)  # +1 keeps the original 0-bid offset; choice is over feasible non-zero arms only
+            else:
+                actions[campaign] = 0  # if campaign campaign is not included in the sampled campaigns subset, we don't bid on it (arm 0 corresponds to bidding 0.0)
+
+        return actions
+    
     def _choose_actions(self, f_ucbs, c_lcbs):
         joint_gamma_t, marginals_t = self.compute_opt(f_ucbs, c_lcbs)
-        campaigns_subset = np.random.choice(2**self.N_CAMPAIGNS, p=marginals_t)  # sample a campaigns subset according to the marginal probabilities
-        conditional_gamma_t = joint_gamma_t[campaigns_subset, :, :] / marginals_t[campaigns_subset] # compute the conditional probabilities given the sampled campaigns subset
-        return np.array([np.random.choice(self.K, p=conditional_gamma_t[i, :]) for i in range(self.N_CAMPAIGNS)])  # sample the bids for each campaign according to the conditional probabilities
 
+        # sample a campaigns subset according to the marginal probabilities
+        campaigns_subset = np.random.choice(2**self.N_CAMPAIGNS, p=marginals_t)
+
+        # compute the conditional probabilities given the sampled campaigns subset
+        conditional_gamma_t = joint_gamma_t[campaigns_subset, :, :] / marginals_t[campaigns_subset]
+
+        # sample the bids for each campaign according to the conditional probabilities
+        return np.array([np.random.choice(self.K, p=conditional_gamma_t[i, :]) for i in range(self.N_CAMPAIGNS)])
+    
     def compute_opt(self, f_ucbs, c_lcbs):
-        # TODO: remove, it should never happen
-        if np.sum(c_lcbs < np.zeros(c_lcbs.shape)):     # if any of the lower confidence bounds are negative, then the linear program is infeasible, so we just pick the arm with the highest upper confidence bound
-            gamma = np.zeros((2**self.N_CAMPAIGNS, self.N_CAMPAIGNS, len(self.bids)))               ## check if it is truly infeasible, or if it is just convenient since a negative cost means the arm is "free" to play
-            best_bids = np.argmax(f_ucbs, axis=1)                   ## also, it should never happen that the lower confidence bound is negative, since the cost is always positive, so maybe we should just clip it to 0 instead 
-            for c in range(self.N_CAMPAIGNS):
-                gamma[-1, c, best_bids[c]] = 1
-            marginals = np.zeros(2**self.N_CAMPAIGNS)
-            marginals[-1] = 1                           ## dunno if it's the correct way to do this, but we just pick the last campaigns subset (all campaigns) with probability 1
-            return gamma, marginals
-
         model = mip.Model()
 
         # Optimization variables
@@ -32,7 +50,7 @@ class CombinatorialUCBLikeBidder(BaseUCBLikeBidder):
         model.add_constr(mip.xsum(gamma[c, b, a] * c_lcbs[c, b]
                                   for c in range(self.N_CAMPAIGNS) for b in range(len(self.bids)) for a in range(2**self.N_CAMPAIGNS)) <= self.RHO)
 
-        # Marginalization constraint
+        # Marginalization + feasibility constraint
         for a in range(2**self.N_CAMPAIGNS):
             for c in range(self.N_CAMPAIGNS):
                 model.add_constr(mip.xsum(gamma[c, b, a] for b in range(len(self.bids))) == marginals[a])
@@ -40,6 +58,10 @@ class CombinatorialUCBLikeBidder(BaseUCBLikeBidder):
                     model.add_constr(gamma[c, 0, a] == 0)
                 else:
                     model.add_constr(gamma[c, 0, a] == marginals[a])
+                # Feasibility: force gamma[c, b, a] = 0 for infeasible bids (bids[b] > valuations[c])
+                for b in range(len(self.bids)):
+                    if not self.feasible[c, b]:
+                        model.add_constr(gamma[c, b, a] == 0)
 
         # Probability distribution constraint
         model.add_constr(mip.xsum(marginals[a] for a in range(2**self.N_CAMPAIGNS)) == 1)

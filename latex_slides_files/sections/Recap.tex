@@ -1,0 +1,44 @@
+﻿\section{Recap of the findings}
+
+% ============================================================
+% Headline summary
+% ============================================================
+\begin{frame}{One-slide recap}
+    \begin{table}[t]
+        \centering
+        \small
+        \begin{tabular}{l l l l}
+            \toprule
+            \textbf{Setting} & \textbf{Best fit} & \textbf{Regret} \\
+            \midrule
+            Stochastic, single campaign & UCB1-like & Sublinear \\
+            Stochastic, multi campaign & Combinatorial-UCB & Sublinear$^\star$ \\
+            Highly non-stationary      & Primal-dual        & Sublinear \\
+            Slightly non-stationary    & CUSUM-UCB          & Sublinear \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+    \centering\scriptsize{$^\star$For Combinatorial-UCB, many more rounds are required, or confidence intervals decaying faster}
+    
+    \vspace{0.2cm}
+
+    \small\begin{itemize}
+        \item \textbf{Clairvoyant} baseline needs to be adapted carefully to the problem, must be neither too strong (unrealistic) nor too weak (non-informative)
+        \item \textbf{Hyperparameters} should be tuned carefully, especially for CUSUM and Sliding-Window methods
+        \item \textbf{Expensiveness} of the bidder is non-negligible, especially when rounds progress with a fast pace
+    \end{itemize}
+\end{frame}
+
+% ============================================================
+% Closing slide
+% ============================================================
+\begin{frame}{Thanks!}
+    \begin{center}
+        \Large
+        \emph{Questions?} \\
+        \vspace{5mm}
+        Code, notebooks and results:   
+        \vspace{1cm}
+        \small \texttt{https://github.com/Richypiants/online-learning-applications-project-2025-2026/}
+    \end{center}
+\end{frame}

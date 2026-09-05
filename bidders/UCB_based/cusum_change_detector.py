@@ -1,7 +1,7 @@
 import numpy as np
 
 class CUSUMChangeDetector:
-    def __init__(self, n_campaigns, K, M, epsilon, h, alpha):
+    def __init__(self, n_campaigns, K, M, epsilon, h, alpha, feasible=None):
         self.N_CAMPAIGNS = n_campaigns
         self.K = K
         self.M = M
@@ -9,7 +9,11 @@ class CUSUMChangeDetector:
         self.h = h
         self.alpha = alpha
 
+        # feasible: optional (N_CAMPAIGNS, K) bool mask; infeasible arms are initialized with 0 forced-exploration counters
+        self.feasible = feasible if feasible is not None else np.ones((self.N_CAMPAIGNS, self.K), dtype=bool)
+
         self.exploration_counters = np.full((self.N_CAMPAIGNS, self.K), self.M)     # forced-exploration rounds remaining per-arm per-campaign
+        self.exploration_counters[~self.feasible] = 0                               # infeasible arms are never scheduled for estimation
         self.f_bar = np.zeros((self.N_CAMPAIGNS, self.K))                           # estimated utilities
         self.g_plus = np.zeros((self.N_CAMPAIGNS, self.K))                          # positive CUSUM statistics
         self.g_minus = np.zeros((self.N_CAMPAIGNS, self.K))                         # negative CUSUM statistics

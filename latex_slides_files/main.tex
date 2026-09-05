@@ -1,0 +1,70 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{CambridgeUS}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath, amssymb}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{dsfont}
+\usepackage{tikz}
+
+\AtBeginSection[]{
+  \begin{frame}
+  \vfill
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center,shadow=true,rounded=true]{title}
+    \usebeamerfont{title}\insertsectionhead\par%
+  \end{beamercolorbox}
+  \vfill
+  \end{frame}
+}
+
+%\logo{\titlegraphic{\vspace{-8.5cm}\hfill\includegraphics[width=1.5cm]{logo_polimi_scritta.eps}\hspace{0.2cm}}}
+
+\title{Bidding on multiple advertising campaigns}
+\subtitle{Online Learning Applications course project - A.Y. 2025/2026}
+\author{Riccardo Piantoni}
+\institute{Politecnico di Milano}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}{}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+    \tableofcontents
+\end{frame}
+
+\begin{frame}{But first... some definitions}
+    \footnotesize
+    \begin{itemize}
+        \item total starting budget: $B$
+        \item number of users (or, equivalently, of action rounds): $T$
+        \item per-round budget: $\rho = \frac{B}{T}$
+        \item set of available bids: $\mathcal{B}$
+        \item bidding probability distribution over bidder actions (bids): $\gamma \in \Delta_\mathcal{B}$
+        \item probability distribution of the highest competing bid of a campaign: $\mathcal{D}_m$ 
+        \item utility: $f(b) = (v - b)\, \mathds{1}\left[b \ge m \right]$
+        \item cost: $c(b) = b\, \mathds{1}\left[b \ge m \right]$
+        \item expected utility induced by the highest competing bids probability distribution: $\bar{f}(b) = \mathbb{E}_{m \sim \mathcal{D}_m}\left[f(b) \right]$
+        \item expected cost induced by the highest competing bids probability distribution: $\bar{c}(b) = \mathbb{E}_{m \sim \mathcal{D}_m}\left[c(b) \right]$
+        \item expected utility induced by the bidding probability distribution: $f(\gamma) = \mathbb{E}_{b \sim \gamma}\left[f(b) \right]$
+        \item expected cost induced by the bidding probability distribution: $c(\gamma) = \mathbb{E}_{b \sim \gamma}\left[c(b) \right]$
+        \item overall expected utility: $\bar{f}(\gamma) = \mathbb{E}_{b \sim \gamma}\left[ \mathbb{E}_{m \sim \mathcal{D}_m}\left[(v - b)\, \mathds{1}\left[b \ge m \right] \right] \right] = \mathbb{E}_{b \sim \gamma}\left[ \mathbb{E}_{m \sim \mathcal{D}_m}\left[f(b) \right] \right]$
+        \item overall expected cost: $\bar{c}(\gamma) = \mathbb{E}_{b \sim \gamma}\left[ \mathbb{E}_{m \sim \mathcal{D}_m}\left[ c(b) \right] \right] = \mathbb{E}_{b \sim \gamma}\left[ \mathbb{E}_{m \sim \mathcal{D}_m}\left[ b\, \mathds{1}\left[b \ge m \right] \right] \right]$
+    \end{itemize}
+\end{frame}
+
+\input{sections/Section 1}
+
+\input{sections/Section 2}
+
+\input{sections/Section 3}
+
+\input{sections/Section 4}
+
+\input{sections/Recap}
+
+\end{document}

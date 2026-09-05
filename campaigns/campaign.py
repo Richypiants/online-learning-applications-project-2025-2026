@@ -7,7 +7,7 @@ from campaigns.first_price_auction import FirstPriceAuction
 
 class Campaign(FirstPriceAuction):
     def __init__(self, ad_qualities):
-        super().__init__(ad_qualities)      # consider removing ad_qualities from the constructor of FirstPriceAuction and just passing it to the methods that need it, since the auction itself isn't really defined by the qualities
+        super().__init__(ad_qualities)
         self.N_ADVERTISERS = len(ad_qualities)
         self.N_COMPETITORS = self.N_ADVERTISERS - 1
         self.TYPE = "UNDEFINED"
@@ -15,12 +15,10 @@ class Campaign(FirstPriceAuction):
         self.competing_bids = None
         self.phase_change_times = np.array([], dtype=np.int64)
 
-    # TODO: add seed to seed everything, including the random generation of competing bids, so that we can have reproducible experiments
-    # maybe seed here so that it is not forgotten and repeated?
     def generate_random_competing_bids(self, n_users, seed):
         np.random.seed(seed)
-        #raise NotImplementedError()
-
+        pass
+    
     def get_max_competing_bids(self):
         if self.competing_bids is None:
             raise ValueError("Competing bids have not been generated yet.")

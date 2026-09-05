@@ -1,6 +1,6 @@
 import numpy as np
 
-from bidders.UCB_based.combinatorial_ucb_like_bidder import CombinatorialUCBLikeBidder
+from bidders.UCB_based.combinatorial_ucb_like_bidder_simplified import CombinatorialUCBLikeBidder
 from bidders.UCB_based.cusum_change_detector import CUSUMChangeDetector
 
 class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
@@ -18,7 +18,7 @@ class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
         self.alpha = alpha    # probability of extra exploration (matching the notebook's CUSUM-UCB)
         self.eps = eps        # tolerance in the CUSUM test (drift allowed before signaling)
 
-        self.change_detector = CUSUMChangeDetector(self.N_CAMPAIGNS, self.K, self.M, self.eps, self.h, self.alpha)
+        self.change_detector = CUSUMChangeDetector(self.N_CAMPAIGNS, self.K, self.M, self.eps, self.h, self.alpha, feasible=self.feasible)
 
         self.n_resets = np.zeros((self.N_CAMPAIGNS, self.K), dtype=int)            # log: number of detected changes per arm
         self.reset_history = [[[] for _ in range(self.K)] for _ in range(self.N_CAMPAIGNS)]   # log: timesteps at which changes were detected
@@ -30,15 +30,6 @@ class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
     # Overriding the method to return the correct statistic
     def get_total_pulls_per_arm(self):
         return self.N_pulls_total
-
-    # Should not be needed, since now we use N_pulls, thus it should be the same as the superclass 
-    # def _confidence_bounds(self):
-    #     mask = self.N_pulls != 0
-    #     radius = np.full_like(self.N_pulls, self.range)
-    #     radius[mask] *= np.sqrt(2 * np.log(self.t) / self.N_pulls[mask])
-    #     f_ucbs = np.clip(self.avg_f + radius, None, 1)
-    #     c_lcbs = np.clip(self.avg_c - radius, 0, None)
-    #     return f_ucbs, c_lcbs
 
     def _choose_actions(self, f_ucbs, c_lcbs):
         campaigns_to_explore, arms_to_explore = self.change_detector.require_estimation()
@@ -68,21 +59,23 @@ class CUSUMCombinatorialUCBLikeBidder(CombinatorialUCBLikeBidder):
             else: 
                 break
 
-        # superarm = np.random.choice(feasible_superarms)  # pick a random feasible superarm
-        superarm = feasible_superarms[0]  # pick the last feasible superarm (arbitrary choice)
-        # TODO: Element 0 means do not bid in any other campaign, because feasible superarms are in increasing order
+        # NOTE: Picking the first superarm (the [0] one) means do not bid in any other campaign, because feasible superarms are sorted in increasing order
         # At the same time, picking the last one does not guarantee that the most campaigns are selected, and in general there isn't 
         # a choice that guaranteed the max reward without using a LP on the remaining campaigns 
         # One could choose a random arm, but maybe it is better to play conservatively, because we would be wasting budget if the 
         # new arm that is being estimated has become exceptionally good: the clairvoyant would know this, and would wait until it can play this
-        # At the same time, waiting to bid in other campaigns wastes a lot of rounds, potentially too many, leading to the budget being 
+        # At the same time, waiting to bid in other campaigns might waste a lot of rounds, potentially too many, leading to the budget being 
         # under-utilized if RHO isn't updated accordingly
+        superarm = feasible_superarms[0]  # pick the first feasible superarm (arbitrary choice)
+
+        # ALTERNATIVE: superarm = np.random.choice(feasible_superarms)  # pick a random feasible superarm
 
         for campaign in range(self.N_CAMPAIGNS):
             if campaign in campaigns_to_explore:
                 actions[campaign] = arms_to_explore[campaign]  # pick the arm that was signaled for exploration
             elif (superarm & (1 << campaign)):
-                actions[campaign] = 1 + np.random.choice(self.K - 1, p=np.full(self.K - 1, 1.0 / (self.K - 1)))  # sample the bid for campaign uniformly excluding the 0.0 bid
+                feasible_nonzero = np.flatnonzero(self.feasible_nonzero[campaign])  # restrict to feasible non-zero arms
+                actions[campaign] = 1 + np.random.choice(feasible_nonzero)  # uniform over feasible non-zero arms (offset +1)
         return actions        
 
     def learn(self, f_t, c_t, m_t=None):
